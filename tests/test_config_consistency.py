@@ -51,10 +51,17 @@ def test_gather_variants_resolve_to_real_villager_variants():
         assert unit["drop_sites"], f"{task} -> {unit['name']} lists no drop site"
 
 
+def _sole(units, name):
+    """The one unit called `name`. 180 units are called RESERVED and 56 have no name at all, so
+    a name->id dict silently picks a winner; assert uniqueness instead."""
+    matches = [u for u in units.values() if u["name"] == name]
+    assert len(matches) == 1, f"expected exactly one unit named {name}, got {len(matches)}"
+    return matches[0]
+
+
 def test_drop_sites_are_present_for_the_named_buildings():
     units = _units()
-    names = {u["name"]: u["id"] for u in units.values()}
-    assert units[names["SMIL"]]["drop_sites"] == []
+    assert _sole(units, "SMIL")["drop_sites"] == []
     lumberjack = units[123]
     assert 562 in lumberjack["drop_sites"], "the lumberjack must drop at the lumber camp (562)"
     miner = units[124]
