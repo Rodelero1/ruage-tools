@@ -40,6 +40,9 @@ def unit_record(unit):
         "speed": _f(getattr(ai, "speed", 0.0)),   # dat stores movement speed here (naming wart)
         "carry": unit.resource_carry_capacity,
         "work_rate": _f(getattr(ti, "work_rate", 0.0)),
+        # D11: drop-off buildings belong to the task VARIANT, not to the base villager.
+        "drop_sites": [int(x) for x in (getattr(ti, "drop_site_unit_ids", None) or [])
+                       if x and x > 0],
         "garrison": unit.garrison_capacity,
         "radius": [_f(unit.radius_x), _f(unit.radius_y), _f(unit.radius_z)],
         "costs": costs,

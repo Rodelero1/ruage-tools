@@ -93,12 +93,38 @@ def test_effect_record_keeps_multipliers_numeric():
     assert all(isinstance(cmd[4], float) for cmd in rec["commands"])
 
 
+def test_unit_record_carries_drop_sites_per_variant():
+    # D11: gathering needs the drop-off list of the *variant* (lumberjack -> lumber camp 562,
+    # miner -> mining camp 584). The base villager lists only town centre + mill, which is why
+    # looking them up on VMBAS gives the wrong answer.
+    from types import SimpleNamespace as NS
+
+    rec = unit_record(_stub_unit(task_info=NS(work_rate=0.39, drop_site_unit_ids=[562, 0, -1])))
+    assert rec is not None
+    assert rec["drop_sites"] == [562], "zero and -1 slots are not drop sites"
+
+    rec = unit_record(_stub_unit(task_info=NS(work_rate=0.53)))
+    assert rec is not None
+    assert rec["drop_sites"] == [], "a variant with no drop sites must emit an empty list"
+
+
+def test_render_units_emits_drop_sites():
+    meta = {"source": "d.dat", "source_sha256": "x", "civ": 1, "civ_name": "British"}
+    rec = {"id": 123, "name": "VMLUM", "class": 4, "hp": 25, "los": 4.0, "speed": 0.8,
+           "carry": 10, "work_rate": 0.39, "garrison": 0, "radius": [0.2, 0.2, 0.0],
+           "costs": [], "attacks": [], "armours": [], "range": 0.0, "reload": 0.0,
+           "accuracy": 0, "train_time": 0, "base_id": -1, "drop_sites": [562]}
+    text = render_units([rec], meta)
+    assert "drop_sites = [562]" in text, text
+
+
 def test_render_units_emits_generated_header_and_one_table_per_unit():
     meta = {"source": "empires2_x2_p1.dat", "source_sha256": "abc123", "civ": 1, "civ_name": "British"}
     rec = {"id": 38, "name": "KNGHT", "class": 12, "hp": 100, "los": 4.0, "speed": 1.35,
            "carry": 0, "work_rate": 0.0, "garrison": 0, "radius": [0.2, 0.2, 0.0],
            "costs": [[0, 60], [3, 75]], "attacks": [[4, 10]], "armours": [[4, 2]],
-           "range": 0.0, "reload": 1.8, "accuracy": 100, "train_time": 30, "base_id": -1}
+           "range": 0.0, "reload": 1.8, "accuracy": 100, "train_time": 30, "base_id": -1,
+           "drop_sites": []}
     text = render_units([rec], meta)
     assert "GENERATED FILE" in text and "do not edit" in text
     assert "source_sha256: abc123" in text

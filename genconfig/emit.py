@@ -28,6 +28,10 @@ def _pairs(pairs):
     return "[" + ", ".join(f"[{int(a)}, {int(b)}]" for a, b in pairs) + "]"
 
 
+def _ints(values):
+    return "[" + ", ".join(str(int(v)) for v in values) + "]"
+
+
 def _floats(values):
     return "[" + ", ".join(toml_float(v) for v in values) + "]"
 
@@ -59,6 +63,7 @@ def render_units(records, meta):
             f"speed = {toml_float(r['speed'])}",
             f"carry = {r['carry']}",
             f"work_rate = {toml_float(r['work_rate'])}",
+            f"drop_sites = {_ints(r['drop_sites'])}",
             f"garrison = {r['garrison']}",
             f"radius = {_floats(r['radius'])}",
             f"costs = {_pairs(r['costs'])}",
