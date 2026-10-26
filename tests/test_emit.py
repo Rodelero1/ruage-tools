@@ -71,8 +71,22 @@ def test_unit_record_extracts_and_cleans_dat_fields():
     assert rec["attacks"] == [[4, 10], [15, 0]]
     assert rec["armours"] == [[4, 2], [3, 2]]
     assert rec["train_time"] == 30
-    # the -1 "no cost" slot is dropped; real slots survive as pairs
-    assert rec["costs"] == [[0, 60], [3, 75], [4, 1]]
+    # the -1 "no cost" slot is dropped; real stockpile slots survive as pairs. Resource 4 is
+    # population, not a stockpile column, so it is not a cost (see the named test below).
+    assert rec["costs"] == [[0, 60], [3, 75]]
+
+
+def test_population_is_not_a_stockpile_cost():
+    """Resource 4 is population: a knight costs 1 pop, not 1 of anything banked.
+
+    The simulation charges a cost from a stockpile column named by the content pack, and it
+    refuses an id the pack does not price rather than paying from another slot. Emitting the
+    population pair as a cost therefore made every unit untrainable once the pack became the
+    authority. Population is AoE2 semantics, which belong to this importer (D17); when the
+    simulation grows a cap it becomes a named field, not a stockpile pair.
+    """
+    rec = unit_record(_stub_unit())
+    assert [resource for resource, _ in rec["costs"]] == [0, 3], rec["costs"]
 
 
 def test_unit_record_passes_through_a_missing_unit():

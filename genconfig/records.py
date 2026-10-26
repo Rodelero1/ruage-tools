@@ -20,6 +20,15 @@ def _f(value, nd=6):
     return round(float(value), nd)
 
 
+# The dat's cost list carries a pseudo-resource that is not in the stockpile: id 4 is population
+# (a spearman costs 35 food, 25 wood and 1 pop). `costs` in the pack means *stockpile* costs - the
+# simulation charges each one from a stockpile column the pack names, and refuses an id the pack
+# does not price rather than paying from another slot - so emitting 4 here makes every unit
+# untrainable. Population is AoE2 semantics, which belong to this importer (D17); when the
+# simulation grows a cap it becomes a named field of its own, not a stockpile pair.
+POPULATION_RESOURCE_ID = 4
+
+
 def unit_record(unit):
     if unit is None:
         return None
@@ -29,7 +38,8 @@ def unit_record(unit):
     ai = getattr(unit, "animation_info", None)
     costs = [[c.resource_id, c.quantity]
              for c in (getattr(ci, "costs", None) or [])
-             if c.resource_id >= 0 and c.quantity]
+             if c.resource_id >= 0 and c.quantity
+             and c.resource_id != POPULATION_RESOURCE_ID]
     trains = [t.train_time for t in (getattr(ci, "train_locations", None) or []) if getattr(t, "train_time", None)]
     return {
         "id": unit.id,
