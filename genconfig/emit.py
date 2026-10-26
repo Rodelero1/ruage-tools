@@ -86,11 +86,24 @@ def _commands(cmds):
     return "[" + ", ".join(fmt(c) for c in cmds) + "]"
 
 
+def _modifiers(modifiers):
+    if not modifiers:
+        return "[]"
+    parts = [
+        "{ op = %s, attribute = %s, attribute_class = %d, unit = %d, unit_class = %d, value = %s }"
+        % (toml_str(m["op"]), toml_str(m["attribute"]), int(m["attribute_class"]),
+           int(m["unit"]), int(m["unit_class"]), toml_float(m["value"]))
+        for m in modifiers
+    ]
+    return "[" + ", ".join(parts) + "]"
+
+
 def render_effects(records, meta):
     lines = _header(meta) + ["schema = 1", 'kind = "effects"', ""]
     for r in records:
         lines += ["[[effect]]", f"id = {r['id']}", f"name = {toml_str(r['name'])}",
-                  f"commands = {_commands(r['commands'])}", ""]
+                  f"commands = {_commands(r['commands'])}",
+                  f"modifiers = {_modifiers(r.get('modifiers', []))}", ""]
     return "\n".join(lines)
 
 

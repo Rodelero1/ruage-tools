@@ -66,10 +66,64 @@ def unit_record(unit):
     }
 
 
+# Attribute ids, as far as the techs that use them show. 0 is hit points (Loom adds 15, Masonry
+# multiplies by 1.1), 1 range, 5 speed, 8 armour, 9 attack, 13 gather rate, 14 carry. Anything else
+# is emitted as `other:<id>` rather than guessed.
+ATTRIBUTE_NAMES = {
+    0: "hit_points",
+    1: "range",
+    5: "speed",
+    8: "armour",
+    9: "attack",
+    13: "gather_rate",
+    14: "carry",
+}
+
+# Attack and armour are **packed**: the value is `class * 256 + amount`, so Forging's 1025 is class 4
+# plus 1. That is a fact about the dat's encoding, so it is decoded here, in the importer (D17), and
+# the engine receives `attribute = "attack", attribute_class = 4, value = 1`.
+PACKED_ATTRIBUTES = {8, 9}
+
+
+def _modifier(command):
+    """One `[kind, a, b, c, value]` command as a decoded modifier, or None when it is not one."""
+    kind, a, b, c, d = command
+    if kind not in (4, 5):
+        return None
+    op = "add" if kind == 4 else "multiply"
+    attribute = ATTRIBUTE_NAMES.get(c, f"other:{c}")
+    attribute_class = -1
+    value = float(d)
+    if c in PACKED_ATTRIBUTES:
+        # Only additions are packed in this data. A kind-5 command on attack or armour carries a
+        # number that is neither a multiplier nor a clean packed pair (2936, -136 ...), so it is
+        # named `unpacked:` rather than given an invented sign or packing rule (U17).
+        packed = int(d)
+        if kind == 4 and packed >= 0 and packed // 256 >= 0:
+            attribute_class = packed // 256
+            value = float(packed % 256)
+        else:
+            attribute = f"unpacked:{c}"
+    return {
+        "op": op,
+        "attribute": attribute,
+        "attribute_class": attribute_class,
+        "unit": int(a),
+        "unit_class": int(b),
+        "value": value,
+    }
+
+
 def effect_record(index, effect):
-    commands = [[c.type, c.a, c.b, c.c, round(float(c.d), 6)]
-                for c in (getattr(effect, "effects", None) or [])]
-    return {"id": index, "name": dname(getattr(effect, "name", None)), "commands": commands}
+    raw = [[c.type, c.a, c.b, c.c, round(float(c.d), 6)]
+           for c in (getattr(effect, "effects", None) or [])]
+    modifiers = [m for m in (_modifier(command) for command in raw) if m is not None]
+    return {
+        "id": index,
+        "name": dname(getattr(effect, "name", None)),
+        "commands": raw,
+        "modifiers": modifiers,
+    }
 
 
 def tech_record(index, tech):

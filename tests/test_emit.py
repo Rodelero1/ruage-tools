@@ -210,3 +210,48 @@ def test_civ_record_carries_resources_and_effect_ids():
     assert rec["id"] == 1 and rec["name"] == "British"
     assert rec["resources"] == [0.0, 1.6]
     assert rec["tech_tree_effect"] == 102
+
+
+def test_effect_record_decodes_packed_attack_and_armour():
+    # The dat packs an attack/armour change as `class * 256 + amount`, so Forging's 1025 is class 4
+    # plus 1. That is a fact about the *format*, so it is decoded here, in the importer (D17): the
+    # engine receives `attribute = "attack", attribute_class = 4, value = 1` and never sees 1025.
+    from types import SimpleNamespace as NS
+    eff = NS(id=67, name="Forging", effects=[
+        NS(type=4, a=-1, b=6, c=9, d=1025.0),
+        NS(type=5, a=-1, b=3, c=0, d=1.1),
+        NS(type=5, a=-1, b=4, c=13, d=1.2),
+    ])
+    rec = effect_record(67, eff)
+    assert rec["commands"][0] == [4, -1, 6, 9, 1025.0], "the raw command is kept for the record"
+    assert rec["modifiers"] == [
+        {"op": "add", "attribute": "attack", "attribute_class": 4,
+         "unit": -1, "unit_class": 6, "value": 1.0},
+        {"op": "multiply", "attribute": "hit_points", "attribute_class": -1,
+         "unit": -1, "unit_class": 3, "value": 1.1},
+        # Attribute 13 is a gather rate: a plain number, not a packed pair.
+        {"op": "multiply", "attribute": "gather_rate", "attribute_class": -1,
+         "unit": -1, "unit_class": 4, "value": 1.2},
+    ]
+
+
+def test_effect_record_leaves_negative_packed_values_undecoded():
+    # U17: six commands carry a *negative* packed attack (-136, -226 ...). `divmod` would read -136 as
+    # class -1 / amount 120, which is an invented sign rule; the importer names them as undecoded
+    # instead of guessing, and the engine sees an attribute it does not interpret.
+    from types import SimpleNamespace as NS
+    eff = NS(id=217, name="Non-Research", effects=[NS(type=4, a=1120, b=-1, c=8, d=-1025.0)])
+    rec = effect_record(217, eff)
+    assert rec["modifiers"] == [
+        {"op": "add", "attribute": "unpacked:8", "attribute_class": -1,
+         "unit": 1120, "unit_class": -1, "value": -1025.0},
+    ]
+
+
+def test_render_effects_writes_modifiers_as_inline_tables():
+    meta = {"source": "d.dat", "source_sha256": "x"}
+    rec = {"id": 67, "name": "Forging", "commands": [[4, -1, 6, 9, 1025.0]],
+           "modifiers": [{"op": "add", "attribute": "attack", "attribute_class": 4,
+                          "unit": -1, "unit_class": 6, "value": 1.0}]}
+    text = render_effects([rec], meta)
+    assert 'modifiers = [{ op = "add", attribute = "attack", attribute_class = 4, unit = -1, unit_class = 6, value = 1.0 }]' in text
