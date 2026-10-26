@@ -3,21 +3,6 @@ revision = 5
 requires-python = ">=3.11"
 
 [[package]]
-name = "age2hd-tools"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "binary-file-parser" },
-    { name = "zlib-ng" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "binary-file-parser", specifier = ">=0.3.0a15" },
-    { name = "zlib-ng", specifier = ">=0.5.1" },
-]
-
-[[package]]
 name = "binary-file-parser"
 version = "0.3.0a24"
 source = { registry = "https://pypi.org/simple" }
@@ -93,6 +78,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/80/38/03358f4e72be0e54beb86f329636a5b4cd7f29e5ebdbc31526688aada237/binary_file_parser-0.3.0a24-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:e3f73bba87117c31e6e042b1c07e4809231e12fbc041535368ff25e3088d23cb", size = 1348443, upload-time = "2026-09-11T16:56:57.354Z" },
     { url = "https://files.pythonhosted.org/packages/4b/5b/20660aca66b15ed41fce8a6573d07b9299cf37231fb3333a92f9a8d267e2/binary_file_parser-0.3.0a24-cp314-cp314t-win32.whl", hash = "sha256:8774438966b9367771044ce48c839ff4b2ec01bf0ca8cc72c8dd2b43b399aaa2", size = 946845, upload-time = "2026-09-11T16:57:27.734Z" },
     { url = "https://files.pythonhosted.org/packages/d8/9d/33b21922be1d91a77312bcb454987cc058708adba0627d01cdb8c59785ba/binary_file_parser-0.3.0a24-cp314-cp314t-win_amd64.whl", hash = "sha256:eef8b01682f3ccf8f30d07d4b525aff23a67307d270279617b6a814584440743", size = 1026190, upload-time = "2026-09-11T16:57:13.179Z" },
+]
+
+[[package]]
+name = "ruage-tools"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "binary-file-parser" },
+    { name = "zlib-ng" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "binary-file-parser", specifier = ">=0.3.0a15" },
+    { name = "zlib-ng", specifier = ">=0.5.1" },
 ]
 
 [[package]]

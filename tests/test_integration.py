@@ -5,7 +5,11 @@ import tomllib
 
 import pytest
 
-DAT = "/opt/data/workspace/Age2HD/Age2HD/resources/_common/dat/empires2_x2_p1.dat"
+# The user's own install, never committed (D8) and never shipped: point `RUAGE_DAT` at it.
+DAT = os.environ.get(
+    "RUAGE_DAT",
+    "/opt/data/workspace/Age2HD/Age2HD/resources/_common/dat/empires2_x2_p1.dat",
+)
 
 pytestmark = pytest.mark.skipif(not os.path.exists(DAT), reason="game dat not present")
 

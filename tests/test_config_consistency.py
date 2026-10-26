@@ -5,14 +5,18 @@ dat is regenerated and an id shifts, or if somebody points a task at the base vi
 mistake, the engine would gather at the wrong rate forever and no unit test would notice.
 """
 
+import os
 import tomllib
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-ECONOMY = ROOT / "config" / "economy.toml"
-UNITS = ROOT / "config" / "gamedata" / "units.toml"
+# This tooling lives in its own repository (D12), so the engine's content pack - the thing these
+# cross-checks are about - has to be pointed at: `RUAGE_CONFIG=/path/to/ruage/config`.
+# Without it there is nothing to cross-check and the tests skip rather than pass vacuously.
+CONFIG = Path(os.environ.get("RUAGE_CONFIG", Path.home() / "ruage" / "config"))
+ECONOMY = CONFIG / "economy.toml"
+UNITS = CONFIG / "gamedata" / "units.toml"
 
 # Tasks whose work_rate is not a gather rate. Building and repairing use the same 0..1 field
 # for something else entirely (build: 1.0, repair: 12.5 hp/s candidate).
@@ -21,13 +25,15 @@ NON_GATHER = {"build", "repair"}
 
 def _units():
     if not UNITS.exists():
-        pytest.skip(f"{UNITS} is not present (generated data, D8)")
+        pytest.skip(f"{UNITS} is not present: set RUAGE_CONFIG to an engine checkout with generated data")
     doc = tomllib.loads(UNITS.read_text())
     return {u["id"]: u for u in doc["unit"]}
 
 
 def test_gather_variants_resolve_to_real_villager_variants():
     units = _units()
+    if not ECONOMY.exists():
+        pytest.skip(f"{ECONOMY} is not present: set RUAGE_CONFIG")
     variants = tomllib.loads(ECONOMY.read_text())["gather"]["variant"]
 
     assert variants, "the gather variant table must not be empty"
