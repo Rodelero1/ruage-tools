@@ -138,15 +138,33 @@ def _modifier(command):
     }
 
 
+def _resource_modifier(command):
+    """One `[kind, a, b, c, value]` command as a change to a *resource*, or None when it is not one.
+
+    Kind 1 writes a resource, not a unit: `a` is a resource id, `b` is the mode (0 set, 1 add) and
+    `d` the value. The resource namespace has no names in the dat, so the id is carried raw and the
+    content pack says which id means what (the farm food line is resource 36: +75/+125/+175 on Horse
+    Collar, Heavy Plow and Crop Rotation).
+    """
+    kind, a, b, _c, d = command
+    if kind != 1:
+        return None
+    return {"resource": int(a), "mode": int(b), "value": float(d)}
+
+
 def effect_record(index, effect):
     raw = [[c.type, c.a, c.b, c.c, round(float(c.d), 6)]
            for c in (getattr(effect, "effects", None) or [])]
     modifiers = [m for m in (_modifier(command) for command in raw) if m is not None]
+    resource_modifiers = [
+        m for m in (_resource_modifier(command) for command in raw) if m is not None
+    ]
     return {
         "id": index,
         "name": dname(getattr(effect, "name", None)),
         "commands": raw,
         "modifiers": modifiers,
+        "resource_modifiers": resource_modifiers,
     }
 
 

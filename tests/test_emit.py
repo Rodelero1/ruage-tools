@@ -294,3 +294,21 @@ def test_render_units_emits_variant_of_only_where_it_is_known():
     # The unit that is nobody's variant must not carry the key at all: a -1 would be a fourth way to
     # spell "none" in a file that already has zero and -1 in the data's own fields.
     assert text.count("variant_of") == 1, text
+
+
+def test_kind_1_is_decoded_as_a_resource_change_not_a_unit_one():
+    """Kind 1 writes a *resource*: `a` is a resource id, `b` the mode. Reading `a` as a unit id is
+    what makes Horse Collar look like it changes a bombard cannon."""
+    # `effect_record` reads the dat's own attribute name: `effects`, a list of commands.
+    effect = effect_record(0, type("E", (), {
+        "name": "Horse Collar",
+        "effects": [
+            type("C", (), {"type": 1, "a": 36, "b": 1, "c": -1, "d": 75.0})(),
+            type("C", (), {"type": 4, "a": 83, "b": -1, "c": 13, "d": 1.1})(),
+        ],
+    })())
+    assert effect["resource_modifiers"] == [{"resource": 36, "mode": 1, "value": 75.0}], effect
+    # And the unit-attribute decoder still ignores it: two namespaces, one command list.
+    assert [m["op"] for m in effect["modifiers"]] == ["add"]
+    text = render_effects([effect], {"source": "d.dat", "source_sha256": "x"})
+    assert "resource_modifiers = [{ resource = 36, mode = 1, value = 75.0 }]" in text, text

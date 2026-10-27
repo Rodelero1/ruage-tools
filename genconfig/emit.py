@@ -99,12 +99,25 @@ def _modifiers(modifiers):
     return "[" + ", ".join(parts) + "]"
 
 
+def _resource_modifiers(modifiers):
+    if not modifiers:
+        return "[]"
+    parts = [
+        "{ resource = %d, mode = %d, value = %s }"
+        % (int(m["resource"]), int(m["mode"]), toml_float(m["value"]))
+        for m in modifiers
+    ]
+    return "[" + ", ".join(parts) + "]"
+
+
 def render_effects(records, meta):
     lines = _header(meta) + ["schema = 1", 'kind = "effects"', ""]
     for r in records:
         lines += ["[[effect]]", f"id = {r['id']}", f"name = {toml_str(r['name'])}",
                   f"commands = {_commands(r['commands'])}",
-                  f"modifiers = {_modifiers(r.get('modifiers', []))}", ""]
+                  f"modifiers = {_modifiers(r.get('modifiers', []))}",
+                  f"resource_modifiers = {_resource_modifiers(r.get('resource_modifiers', []))}",
+                  ""]
     return "\n".join(lines)
 
 
