@@ -255,3 +255,42 @@ def test_render_effects_writes_modifiers_as_inline_tables():
                           "unit": -1, "unit_class": 6, "value": 1.0}]}
     text = render_effects([rec], meta)
     assert 'modifiers = [{ op = "add", attribute = "attack", attribute_class = 4, unit = -1, unit_class = 6, value = 1.0 }]' in text
+
+
+def test_variant_map_reads_unit_upgrades_out_of_the_effect_table():
+    # An age-up does not "improve" a building in place: it replaces the unit id (town centre 109 ->
+    # 71, barracks 12 -> 498) with a per-age variant. The engine has to keep treating those as the
+    # same building - a villager still drops wood at an upgraded town centre - so the variant has to
+    # know what it was upgraded from, and the only place that relation exists is the effects table.
+    from genconfig.records import variant_map
+
+    effects = [
+        {"id": 101, "commands": [[3, 109, 71, -1, 0.0], [3, 12, 498, -1, 0.0],
+                                 [1, 6, 0, -1, 0.0], [4, -1, 6, 9, 1025.0]]},
+        {"id": 102, "commands": [[3, 71, 141, -1, 0.0]]},
+    ]
+    assert variant_map(effects) == {71: 109, 498: 12, 141: 71}
+
+
+def test_variant_map_keeps_a_deterministic_source_when_two_upgrades_point_at_one_unit():
+    from genconfig.records import variant_map
+
+    # Two different units are upgraded into the same one (the data really does this: 87 and 132 both
+    # upgrade into 10). The engine wants one parent, so the lowest id wins - a property of the data,
+    # stated once here, rather than whatever the hash map happens to yield.
+    effects = [{"id": 1, "commands": [[3, 132, 10, -1, 0.0]]},
+               {"id": 2, "commands": [[3, 87, 10, -1, 0.0]]}]
+    assert variant_map(effects) == {10: 87}
+
+
+def test_render_units_emits_variant_of_only_where_it_is_known():
+    meta = {"source": "d.dat", "source_sha256": "x", "civ": 1, "civ_name": "British"}
+    base = {"id": 71, "name": "RTWC2", "class": 3, "hp": 2400, "los": 8.0, "speed": 0.0,
+            "carry": 0, "work_rate": 1.0, "garrison": 0, "radius": [2.5, 2.5, 0.0],
+            "costs": [], "attacks": [], "armours": [], "range": 0.0, "reload": 0.0,
+            "accuracy": 0, "train_time": 150, "base_id": 71, "drop_sites": []}
+    text = render_units([dict(base, variant_of=109), dict(base, id=83, name="VMBAS")], meta)
+    assert "variant_of = 109" in text, text
+    # The unit that is nobody's variant must not carry the key at all: a -1 would be a fourth way to
+    # spell "none" in a file that already has zero and -1 in the data's own fields.
+    assert text.count("variant_of") == 1, text

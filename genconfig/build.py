@@ -33,6 +33,13 @@ def build_config(dat_path, out_dir, generated=None):
     effect_recs = [records.effect_record(i, e) for i, e in enumerate(dat.tech_effects)]
     civ_recs = [records.civ_record(i, c) for i, c in enumerate(dat.civilizations)]
 
+    # An age-up replaces a building's unit id with a per-age variant; the variant has to say what it
+    # came from, and the relation only exists in the effects table (see records.variant_map).
+    variants = records.variant_map(effect_recs)
+    for rec in unit_recs:
+        if rec["id"] in variants:
+            rec["variant_of"] = variants[rec["id"]]
+
     payloads = {
         "units": emit.render_units(
             unit_recs,

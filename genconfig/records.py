@@ -66,6 +66,30 @@ def unit_record(unit):
     }
 
 
+def variant_map(effect_records):
+    """Unit id -> the unit it is an upgraded variant of, read out of the effects table's kind-3 commands.
+
+    An age-up does not improve a building in place: it replaces the unit id (town centre 109 -> 71,
+    barracks 12 -> 498, blacksmith 103 -> 105). The engine has to keep treating the two as the same
+    building - a villager still drops wood at an upgraded town centre, and a barracks still trains
+    spearmen - so the variant has to say what it came from. The dat's own `base_id` is useless here
+    (it points at itself), and this relation exists only in the effects table, which makes deriving it
+    the importer's job (D17).
+
+    When two different units upgrade into the same one - the data really does this, 87 and 132 both
+    upgrade into 10 - the lowest source wins, so the answer is stable between runs.
+    """
+    parents = {}
+    for effect in effect_records:
+        for command in effect.get("commands", []):
+            kind, source, target = command[0], int(command[1]), int(command[2])
+            if kind != 3 or source <= 0 or target <= 0 or source == target:
+                continue
+            if target not in parents or source < parents[target]:
+                parents[target] = source
+    return parents
+
+
 # Attribute ids, as far as the techs that use them show. 0 is hit points (Loom adds 15, Masonry
 # multiplies by 1.1), 1 range, 5 speed, 8 armour, 9 attack, 13 gather rate, 14 carry. Anything else
 # is emitted as `other:<id>` rather than guessed.

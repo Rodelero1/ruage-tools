@@ -74,6 +74,7 @@ def render_units(records, meta):
             f"accuracy = {r['accuracy']}",
             f"train_time = {r['train_time']}",
             f"base_id = {r['base_id']}",
+            *([f"variant_of = {r['variant_of']}"] if r.get("variant_of") else []),
             "",
         ]
     return "\n".join(lines)
