@@ -170,11 +170,13 @@ def test_render_civs_writes_float_arrays_and_ids():
 def test_render_techs_emits_costs_and_prerequisites():
     meta = {"source": "d.dat", "source_sha256": "x"}
     rec = {"id": 202, "effect_id": 195, "research_time": 25,
-           "costs": [[0, 100], [1, 50]], "required": [101, 199], "location": 109}
+           "costs": [[0, 100], [1, 50]], "required": [101, 199], "min_required": 2,
+           "location": 109}
     text = render_techs([rec], meta)
     assert "id = 202" in text
     assert "costs = [[0, 100], [1, 50]]" in text
     assert "required = [101, 199]" in text
+    assert "min_required = 2" in text
     assert "location = 109" in text
 
 
@@ -312,3 +314,28 @@ def test_kind_1_is_decoded_as_a_resource_change_not_a_unit_one():
     assert [m["op"] for m in effect["modifiers"]] == ["add"]
     text = render_effects([effect], {"source": "d.dat", "source_sha256": "x"})
     assert "resource_modifiers = [{ resource = 36, mode = 1, value = 75.0 }]" in text, text
+
+
+def test_a_tech_carries_how_many_prerequisites_are_enough():
+    """The dat's `min_required_techs` is part of the rule, not decoration: five shadows with a minimum
+    of two means "any two", and flattening it to "all five" invents a gate."""
+    def tech(**kwargs):
+        base = {"effect_id": 1, "research_time": 0, "costs": [], "location": -1,
+                "required_tech_ids": [], "min_required_techs": 0}
+        base.update(kwargs)
+        return type("T", (), base)()
+
+    any_two = tech_record(120, tech(required_tech_ids=[110, 258, 108, -1, -1, -1], min_required_techs=2))
+    assert any_two["required"] == [110, 258, 108], any_two
+    assert any_two["min_required"] == 2, any_two
+
+    # A list with no count means "all of them", which is what every pack written before today meant.
+    all_of = tech_record(147, tech(required_tech_ids=[101, 667], min_required_techs=0))
+    assert all_of["min_required"] == 2, all_of
+
+    # A count that exceeds the list cannot mean anything else either.
+    clamped = tech_record(9, tech(required_tech_ids=[101], min_required_techs=4))
+    assert clamped["min_required"] == 1, clamped
+
+    text = render_techs([any_two], {"source": "d.dat", "source_sha256": "x"})
+    assert "min_required = 2" in text, text

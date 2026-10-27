@@ -172,12 +172,19 @@ def tech_record(index, tech):
     costs = [[c.resource_id, c.quantity] for c in (getattr(tech, "costs", None) or [])
              if c.resource_id >= 0 and c.quantity]
     required = [x for x in (getattr(tech, "required_tech_ids", None) or []) if x and x > 0]
+    # How many of `required` are enough. The dat's own field, and it is not decoration: tech 120
+    # "Shadow Node for Age Two" lists five buildings and needs **two** of them, so reading its list as
+    # "all five" invents a rule the game does not have. Zero or more than the list means "all".
+    min_required = int(getattr(tech, "min_required_techs", 0) or 0)
+    if min_required <= 0 or min_required > len(required):
+        min_required = len(required)
     return {
         "id": index,
         "effect_id": getattr(tech, "effect_id", -1),
         "research_time": getattr(tech, "research_time", 0),
         "costs": costs,
         "required": required,
+        "min_required": min_required,
         "location": getattr(tech, "location_unit_id", -1),
     }
 

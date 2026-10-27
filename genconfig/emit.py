@@ -128,6 +128,7 @@ def render_techs(records, meta):
                   f"research_time = {r['research_time']}",
                   f"costs = {_pairs(r['costs'])}",
                   f"required = [" + ", ".join(str(int(x)) for x in r["required"]) + "]",
+                  f"min_required = {r['min_required']}",
                   f"location = {r['location']}", ""]
     return "\n".join(lines)
 
