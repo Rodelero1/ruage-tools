@@ -237,6 +237,51 @@ def test_effect_record_decodes_packed_attack_and_armour():
     ]
 
 
+def test_kind_zero_sets_a_unit_specific_attribute():
+    # Kind 0 is the third namespace: like 4 and 5 it addresses a *unit* and names an attribute, but
+    # its value is plain (never packed) and its meaning is "set", not "add". It is where the Slavs team
+    # bonus lives - military buildings provide five population - and where Ballistics sets its flag.
+    from genconfig.records import effect_record
+
+    class Cmd:
+        def __init__(self, kind, a, b, c, d):
+            self.type, self.a, self.b, self.c, self.d = kind, a, b, c, d
+
+    class Effect:
+        name = b"Slavs Team Bonus\x00"
+
+        def __init__(self):
+            self.effects = [Cmd(0, 12, -1, 21, 5.0), Cmd(0, 101, -1, 21, 5.0), Cmd(4, -1, 6, 9, 1025.0)]
+
+    record = effect_record(9, Effect())
+    assert record["modifiers"] == [
+        {"op": "set", "attribute": "population", "attribute_class": -1,
+         "unit": 12, "unit_class": -1, "value": 5.0},
+        {"op": "set", "attribute": "population", "attribute_class": -1,
+         "unit": 101, "unit_class": -1, "value": 5.0},
+        {"op": "add", "attribute": "attack", "attribute_class": 4,
+         "unit": -1, "unit_class": 6, "value": 1.0},
+    ]
+
+
+def test_kind_zero_attributes_are_named_only_where_the_techs_show_them():
+    # Ballistics sets attribute 19 on every archer ship and bow; Thumb Ring sets 11 (accuracy).
+    from genconfig.records import effect_record
+
+    class Cmd:
+        def __init__(self, kind, a, b, c, d):
+            self.type, self.a, self.b, self.c, self.d = kind, a, b, c, d
+
+    class Effect:
+        name = b"Ballistics\x00"
+
+        def __init__(self):
+            self.effects = [Cmd(0, 363, -1, 19, 1.0), Cmd(0, 363, -1, 22, 0.5)]
+
+    record = effect_record(93, Effect())
+    assert [m["attribute"] for m in record["modifiers"]] == ["ballistics", "other:22"]
+
+
 def test_effect_record_leaves_negative_packed_values_undecoded():
     # U17: six commands carry a *negative* packed attack (-136, -226 ...). `divmod` would read -136 as
     # class -1 / amount 120, which is an invented sign rule; the importer names them as undecoded

@@ -93,14 +93,27 @@ def variant_map(effect_records):
 # Attribute ids, as far as the techs that use them show. 0 is hit points (Loom adds 15, Masonry
 # multiplies by 1.1), 1 range, 5 speed, 8 armour, 9 attack, 13 gather rate, 14 carry. Anything else
 # is emitted as `other:<id>` rather than guessed.
+#
+# Named from the kind-0 commands, each by the tech that writes it and the change it makes:
+#   11 accuracy         Thumb Ring sets an archer's accuracy to 100, City Rights to 87.
+#   19 ballistics       Ballistics sets 1 on every bow, gun and galley; Fire Ships auto-ballistics.
+#   20 minimum_range    Andean Sling sets a slinger's minimum range to 0; the Koreans' team bonus to 1.
+#   21 population       Slavs' team bonus sets military buildings to 5; the Chinese town centre to 10.
+#   102 extra_projectiles  Yasama sets 3 on towers.
+# The rest (22 on City Rights, 105 on Mercenaries) are emitted as `other:<id>`.
 ATTRIBUTE_NAMES = {
     0: "hit_points",
     1: "range",
     5: "speed",
     8: "armour",
     9: "attack",
+    11: "accuracy",
     13: "gather_rate",
     14: "carry",
+    19: "ballistics",
+    20: "minimum_range",
+    21: "population",
+    102: "extra_projectiles",
 }
 
 # Attack and armour are **packed**: the value is `class * 256 + amount`, so Forging's 1025 is class 4
@@ -110,11 +123,17 @@ PACKED_ATTRIBUTES = {8, 9}
 
 
 def _modifier(command):
-    """One `[kind, a, b, c, value]` command as a decoded modifier, or None when it is not one."""
+    """One `[kind, a, b, c, value]` command as a decoded modifier, or None when it is not one.
+
+    Three kinds share this layout - `a` the unit it addresses, `b` its class, `c` the attribute and
+    `d` the value - and differ in what the value *means*: 0 sets, 4 adds, 5 multiplies. Only 4 and 5
+    pack the value for attack and armour; a kind-0 value is always plain, which is why the Slavs'
+    population set is `5.0` and not `1285.0`.
+    """
     kind, a, b, c, d = command
-    if kind not in (4, 5):
+    if kind not in (0, 4, 5):
         return None
-    op = "add" if kind == 4 else "multiply"
+    op = {0: "set", 4: "add", 5: "multiply"}[kind]
     attribute = ATTRIBUTE_NAMES.get(c, f"other:{c}")
     attribute_class = -1
     value = float(d)
