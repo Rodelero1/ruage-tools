@@ -59,6 +59,9 @@ def unit_record(unit):
         "attacks": [[a.id, a.amount] for a in (getattr(cbi, "attacks", None) or [])],
         "armours": [[a.id, a.amount] for a in (getattr(cbi, "armors", None) or [])],
         "range": _f(getattr(cbi, "max_range", 0.0)),
+        # The dead zone: a siege engine cannot shoot a target closer than this. Stored per unit by the
+        # dat, so importing it is all it takes (D44).
+        "min_range": _f(getattr(cbi, "min_range", 0.0)),
         "reload": _f(getattr(cbi, "displayed_reload_time", 0.0)),
         "accuracy": getattr(cbi, "accuracy_percent", 0),
         "train_time": trains[0] if trains else 0,

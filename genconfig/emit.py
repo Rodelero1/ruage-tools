@@ -72,6 +72,8 @@ def render_units(records, meta):
             f"range = {toml_float(r['range'])}",
             f"reload = {toml_float(r['reload'])}",
             f"accuracy = {r['accuracy']}",
+            # A record built by hand in a test need not carry it; a record from the dat always does.
+            f"min_range = {r.get('min_range', 0.0)}",
             f"train_time = {r['train_time']}",
             f"base_id = {r['base_id']}",
             *([f"variant_of = {r['variant_of']}"] if r.get("variant_of") else []),

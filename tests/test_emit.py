@@ -107,6 +107,42 @@ def test_effect_record_keeps_multipliers_numeric():
     assert all(isinstance(cmd[4], float) for cmd in rec["commands"])
 
 
+def test_unit_record_carries_the_minimum_range():
+    # A siege engine cannot shoot what stands next to it: the dat stores that dead zone per unit as
+    # `min_range`, next to `max_range`. It is data, not a rule about mangonels, so it is imported (D44).
+    from genconfig.records import unit_record
+
+    class Combat:
+        attacks = []
+
+        def __init__(self):
+            self.armors = []
+            self.max_range = 7.0
+            self.reload_time = 5.0
+            self.displayed_reload_time = 5.0
+            self.accuracy_percent = 100
+            self.min_range = 3.0
+
+    class Unit:
+        id = 280
+        name = b"MANGNL\x00"
+        class_ = 55
+        hit_points = 50
+        line_of_sight = 9.0
+        resource_carry_capacity = 0
+        garrison_capacity = 0
+        radius_x = radius_y = radius_z = 0.0
+        base_id = 280
+        animation_info = None
+        task_info = None
+        creation_info = None
+
+        def __init__(self):
+            self.combat_info = Combat()
+
+    record = unit_record(Unit())
+    assert record["min_range"] == 3.0
+
 def test_unit_record_carries_drop_sites_per_variant():
     # D11: gathering needs the drop-off list of the *variant* (lumberjack -> lumber camp 562,
     # miner -> mining camp 584). The base villager lists only town centre + mill, which is why
